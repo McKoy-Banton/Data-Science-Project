@@ -1,0 +1,63 @@
+library(SnowballC)
+library(tm)
+library(syuzhet)
+library(wordcloud)
+library(RColorBrewer)
+library(wordcloud2)
+library(tm)
+
+hotel_review.df <- read.csv("SampleHotelReviewsLab04.csv", stringsAsFactors = FALSE)
+user_emotions <- get_nrc_sentiment(hotel_review.df$ReviewText)
+
+#Question 1 a)
+
+emotion_counts <- colSums(user_emotions[, 1:8])
+most_common_emotion <- names(which.max(emotion_counts))
+print(paste("The most common emotion is:", most_common_emotion))
+
+#Question #1 b)
+family_review <- hotel_review.df[hotel_review.df$TripType == "Traveled with family",]
+family_sentiments <- get_nrc_sentiment(family_review$ReviewText)
+dominant_family_sentiment <- names(which.max(colSums(family_sentiments)))
+print(paste("The dominant sentiment for 'Traveled with Family' is:", dominant_family_sentiment))
+
+#Question 2
+solo_review <- hotel_review.df[hotel_review.df$TripType == "Traveled solo",]
+couple_review <- hotel_review.df[hotel_review.df$TripType == "Traveled as a couple",]
+
+solo_sentiment <- get_nrc_sentiment(solo_review$ReviewText)
+couple_sentiment <- get_nrc_sentiment(couple_review$ReviewText)
+solo_neg <- sum(solo_sentiment$negative)
+couple_neg <- sum(couple_sentiment$negative)
+
+if (solo_neg > couple_neg) 
+{
+  print("Travelers who 'Traveled solo' had more negative experiences.")
+} else if (couple_neg > solo_neg) 
+{
+  print("Travelers who 'Traveled as a couple' had more negative experiences.")
+} else 
+{
+  print("Both groups had equal negative experiences.")
+}
+
+#Question 3
+dominant_sentiment <- names(which.max(colSums(user_emotions[, 9:10])))
+print(paste("The dominant sentiment among all travelers is:", dominant_sentiment))
+
+#Question 4
+business_review <- hotel_review.df[hotel_review.df$TripType == "Traveled on business",]
+business_corp<- Corpus(VectorSource(business_review$ReviewText))
+business_corp <- tm_map(business_corp, content_transformer(tolower))
+business_corp <- tm_map(business_corp, removeWords, c(stopwords("english"), "and", "or","&amp;"))
+wordcloud(business_corp, max.words = 150, random.order = FALSE, colors = brewer.pal(8, "Dark2"))
+
+#Question 5
+hotel_corp <- Corpus(VectorSource(hotel_review.df$ReviewText))
+hotel_corp <- tm_map(hotel_corp, content_transformer(tolower))
+hotel_corp <- tm_map(hotel_corp, removePunctuation)
+hotel_corp <- tm_map(hotel_corp, removeNumbers)
+hotel_corp <- tm_map(hotel_corp, removeWords, stopwords("en"))
+wordcloud(hotel_corp, max.words = 150, random.order = FALSE, colors = brewer.pal(8, "Dark2"))
+
+
