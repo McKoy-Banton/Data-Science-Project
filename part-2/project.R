@@ -314,5 +314,8 @@ sale_clean$Total.ProfitCat <- cut(sale_clean$Total.Profit,
                                 dig.lab = 5,
                                 labels = paste0("$", format(pretty_breaks[-length(pretty_breaks)], big.mark=",", trim=TRUE),
                                                 " - $", format(pretty_breaks[-1], big.mark=",", trim=TRUE)))
+# Remove Sales.Channel if it is empty:
+sale_clean <- sale_clean %>%
+  filter(!is.na(Sales.Channel) & trimws(Sales.Channel) != "")
 View(sale_clean)
 
