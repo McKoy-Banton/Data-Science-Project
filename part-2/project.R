@@ -220,8 +220,6 @@ sale_clean <- sale_clean %>%
 #Drop X.1 has there is no use for it
 sale_clean <- sale_clean[, -which(names(sale_clean) == "X.1")]
 
-View(sale_clean)
-write.csv(sale_clean, "sale_clean1.csv")
 
 #Checking for outliers
 # Units.Sold
@@ -243,51 +241,45 @@ cat("Number of outliers:", length(outlier.Unit.Cost), "\n")
 hist(sale_clean$Total.Revenue, main="Histogram of Total Revenue", xlab="Values", col="orange", breaks=20)
 outlier.Total.Revenue <- boxplot.stats(sale_clean$Total.Revenue)$out
 cat("Number of outliers:", length(outlier.Total.Revenue), "\n")
-#---resolve by equal width binning
-n_bins <- 20
-minval <- min(sale_clean$Total.Revenue, na.rm = TRUE)
-maxval <- max(sale_clean$Total.Revenue, na.rm = TRUE)
-width <- (maxval - minval) / n_bins
 
+#---resolve by bounding
+iqr <- IQR(sale_clean$Total.Revenue, na.rm = TRUE)
+q25 <- quantile(sale_clean$Total.Revenue, 0.25, na.rm = TRUE)
+q75 <- quantile(sale_clean$Total.Revenue, 0.75, na.rm = TRUE)
 
-pretty_breaks <- seq(floor(minval), ceiling(maxval), length.out = n_bins + 1)
+lower_bound_iqr <- q25 - (1.5 * iqr)
+upper_bound_iqr <- q75 + (1.5 * iqr)
 
-pretty_breaks <- pretty(sale_clean$Total.Revenue, n = n_bins)
-pretty_breaks[1] <- minval  # Ensure min is covered
-pretty_breaks[length(pretty_breaks)] <- maxval  # Ensure max is covered
-
-sale_clean$Total.RevenueCat <- cut(sale_clean$Total.Revenue,
-                                breaks = pretty_breaks,
-                                include.lowest = TRUE,
-                                dig.lab = 5,
-                                labels = paste0("$", format(pretty_breaks[-length(pretty_breaks)], big.mark=",", trim=TRUE),
-                                                " - $", format(pretty_breaks[-1], big.mark=",", trim=TRUE)))
-
+# Enforce bounds (using quantile method)
+sale_clean$Total.Revenue_Bound <- ifelse(
+  sale_clean$Total.Revenue < lower_bound_iqr, lower_bound_iqr,
+  ifelse(
+    sale_clean$Total.Revenue > upper_bound_iqr, upper_bound_iqr,
+    sale_clean$Total.Revenue
+  )
+)
 
 # Total.Cost
 hist(sale_clean$Total.Cost, main="Histogram of Total Cost", xlab="Values", col="green", breaks=20)
 outlier.Total.Cost <- boxplot.stats(sale_clean$Total.Cost)$out
 cat("Number of outliers:", length(outlier.Total.Cost), "\n")
-#---resolve by equal width binning
-n_bins <- 20
-minval <- min(sale_clean$Total.Cost, na.rm = TRUE)
-maxval <- max(sale_clean$Total.Cost, na.rm = TRUE)
-width <- (maxval - minval) / n_bins
 
+#---resolve by bounding
+iqr <- IQR(sale_clean$Total.Cost, na.rm = TRUE)
+q25 <- quantile(sale_clean$Total.Cost, 0.25, na.rm = TRUE)
+q75 <- quantile(sale_clean$Total.Cost, 0.75, na.rm = TRUE)
 
-pretty_breaks <- seq(floor(minval), ceiling(maxval), length.out = n_bins + 1)
+lower_bound_iqr <- q25 - (1.5 * iqr)
+upper_bound_iqr <- q75 + (1.5 * iqr)
 
-pretty_breaks <- pretty(sale_clean$Total.Cost, n = n_bins)
-pretty_breaks[1] <- minval  # Ensure min is covered
-pretty_breaks[length(pretty_breaks)] <- maxval  # Ensure max is covered
-
-sale_clean$Total.CostCat <- cut(sale_clean$Total.Cost,
-                                breaks = pretty_breaks,
-                                include.lowest = TRUE,
-                                dig.lab = 5,
-                                labels = paste0("$", format(pretty_breaks[-length(pretty_breaks)], big.mark=",", trim=TRUE),
-                                                " - $", format(pretty_breaks[-1], big.mark=",", trim=TRUE)))
-
+# Enforce bounds (using quantile method)
+sale_clean$Total.Cost_Bound <- ifelse(
+  sale_clean$Total.Cost < lower_bound_iqr, lower_bound_iqr,
+  ifelse(
+    sale_clean$Total.Cost > upper_bound_iqr, upper_bound_iqr,
+    sale_clean$Total.Cost
+  )
+)
 
 
 
@@ -295,27 +287,26 @@ sale_clean$Total.CostCat <- cut(sale_clean$Total.Cost,
 hist(sale_clean$Total.Profit, main="Histogram Total Profit", xlab="Values", col="purple", breaks=20)
 outlier.Total.Profit <- boxplot.stats(sale_clean$Total.Profit)$out
 cat("Number of outliers:", length(outlier.Total.Profit), "\n")
-#---resolve by equal width binning
-n_bins <- 20
-minval <- min(sale_clean$Total.Profit, na.rm = TRUE)
-maxval <- max(sale_clean$Total.Profit, na.rm = TRUE)
-width <- (maxval - minval) / n_bins
+
+#---resolve by bounding
+iqr <- IQR(sale_clean$Total.Profit, na.rm = TRUE)
+q25 <- quantile(sale_clean$Total.Profit, 0.25, na.rm = TRUE)
+q75 <- quantile(sale_clean$Total.Profit, 0.75, na.rm = TRUE)
+
+lower_bound_iqr <- q25 - (1.5 * iqr)
+upper_bound_iqr <- q75 + (1.5 * iqr)
+
+# Enforce bounds (using quantile method)
+sale_clean$Total.Profit_Bound <- ifelse(
+  sale_clean$Total.Profit < lower_bound_iqr, lower_bound_iqr,
+  ifelse(
+    sale_clean$Total.Profit > upper_bound_iqr, upper_bound_iqr,
+    sale_clean$Total.Profit
+  )
+)
 
 
-pretty_breaks <- seq(floor(minval), ceiling(maxval), length.out = n_bins + 1)
-
-pretty_breaks <- pretty(sale_clean$Total.Profit, n = n_bins)
-pretty_breaks[1] <- minval  # Ensure min is covered
-pretty_breaks[length(pretty_breaks)] <- maxval  # Ensure max is covered
-
-sale_clean$Total.ProfitCat <- cut(sale_clean$Total.Profit,
-                                breaks = pretty_breaks,
-                                include.lowest = TRUE,
-                                dig.lab = 5,
-                                labels = paste0("$", format(pretty_breaks[-length(pretty_breaks)], big.mark=",", trim=TRUE),
-                                                " - $", format(pretty_breaks[-1], big.mark=",", trim=TRUE)))
-# Remove Sales.Channel if it is empty:
+# Remove if Sales.Channel it is empty:
 sale_clean <- sale_clean %>%
   filter(!is.na(Sales.Channel) & trimws(Sales.Channel) != "")
 View(sale_clean)
-
