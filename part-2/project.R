@@ -201,24 +201,142 @@ region_country <- c(
   "Cape Verde" = "Sub-Saharan Africa",
   "Libya" = "Middle East and North Africa",
   "Zimbabwe" = "Sub-Saharan Africa",
-  "El Salvador" = "Central America and the Caribbean"
+  "El Salvador" = "Central America and the Caribbean",
+  "Bosnia and Herzegovina" = "Europe",
+  "Bulgaria" = "Europe",
+  "Vatican City" = "Europe",
+  "Swaziland" = "Sub-Saharan Africa",
+  "Azerbaijan" = "Middle East and North Africa",
+  "Palau" = "Australia and Oceania",
+  "Namibia" = "Sub-Saharan Africa",
+  "Samoa" = "Australia and Oceania",
+  "Jordan" = "Middle East and North Africa",
+  "Cambodia" = "Asia",
+  "Finland" = "Europe",
+  "Grenada" = "Central America and the Caribbean",
+  "Syria" = "Middle East and North Africa",
+  "Burundi" = "Sub-Saharan Africa",
+  "Niger" = "Sub-Saharan Africa",
+  "United Arab Emirates" = "Middle East and North Africa",
+  "Indonesia" = "Asia",
+  "Guinea-Bissau" = "Sub-Saharan Africa",
+  "Hungary" = "Europe",
+  "Gabon" = "Sub-Saharan Africa",
+  "Zambia" = "Sub-Saharan Africa",
+  "Poland" = "Europe",
+  "Kuwait" = "Middle East and North Africa",
+  "Malta" = "Europe",
+  "Latvia" = "Europe",
+  "Croatia" = "Europe",
+  "Saint Kitts and Nevis" = "Central America and the Caribbean",
+  "Greenland" = "North America",
+  "Lebanon" = "Middle East and North Africa",
+  "China" = "Asia",
+  "Pakistan" = "Middle East and North Africa",
+  "Togo" = "Sub-Saharan Africa",
+  "Eritrea" = "Sub-Saharan Africa",
+  "Turkmenistan" = "Asia",
+  "Andorra" = "Europe",
+  "Romania" = "Europe",
+  "Ukraine" = "Europe",
+  "Armenia" = "Europe",
+  "Yemen" = "Middle East and North Africa",
+  "Seychelles" = "Sub-Saharan Africa",
+  "Estonia" = "Europe",
+  "Ireland" = "Europe",
+  "Egypt" = "Middle East and North Africa",
+  "Tajikistan" = "Asia",
+  "United Kingdom" = "Europe",
+  "Kiribati" = "Australia and Oceania",
+  "Cuba" = "Central America and the Caribbean",
+  "Equatorial Guinea" = "Sub-Saharan Africa",
+  "Moldova" = "Europe",
+  "Liechtenstein" = "Europe",
+  "Belarus" = "Europe",
+  "Mauritius" = "Sub-Saharan Africa",
+  "Portugal" = "Europe",
+  "Saint Lucia" = "Central America and the Caribbean",
+  "Laos" = "Asia",
+  "Chad" = "Sub-Saharan Africa",
+  "Mali" = "Sub-Saharan Africa",
+  "Austria" = "Europe",
+  "Ghana" = "Sub-Saharan Africa",
+  "Sierra Leone" = "Sub-Saharan Africa",
+  "Antigua and Barbuda" = "Central America and the Caribbean",
+  "Italy" = "Europe",
+  "Guinea" = "Australia and Oceania",
+  "Iraq" = "Middle East and North Africa",
+  "Tonga" = "Australia and Oceania",
+  "Comoros" = "Sub-Saharan Africa",
+  "Thailand" = "Asia",
+  "Marshall Islands" = "Australia and Oceania",
+  "Federated States of Micronesia" = "Australia and Oceania",
+  "Mongolia" = "Asia",
+  "Democratic Republic of the Congo" = "Sub-Saharan Africa",
+  "Republic of the Congo" = "Sub-Saharan Africa",
+  "Tuvalu" = "Australia and Oceania",
+  "Nauru" = "Australia and Oceania",
+  "Sri Lanka" = "Asia"
   
 )
-sale_clean$Region <- gsub('"',"?", sale_clean$Region)
-sale_clean$Region <- ifelse(sale_clean$Region %in% c("","?", "??" ), region_country[sale_clean$Country], sale_clean$Region)
+sale_clean$Country <- sale_clean$Country %>% 
+  trimws() %>%                # Remove leading/trailing spaces
+  tolower() %>%               
+  tools::toTitleCase()        
+
+sale_clean$Region <- sale_clean$Region %>%
+  # Replace double quotes with single ?
+  gsub('"', "?", .) %>%
+  # Convert all NA indicators to simple NA
+  ifelse(. %in% c("", "?", "??", "NA", "N/A", "Not Applicable"), NA, .) %>%
+  # Trim whitespace
+  trimws()
+
+# Identify unmapped countries (diagnostic)
+unmapped_countries <- unique(sale_clean$Country[is.na(sale_clean$Region) & 
+                                                  !(sale_clean$Country %in% names(region_country))])
+
+# Applying mapping with comprehensive case handling
+sale_clean <- sale_clean %>%
+  mutate(
+    Region = case_when(
+      # Case 1: Valid mapping exists
+      is.na(Region) & Country %in% names(region_country) ~ region_country[Country],
+      
+      # Case 2: No mapping exists - create explicit missing code
+      is.na(Region) ~ "UNMAPPED_REGION",
+      
+      # Case 3: Keep existing valid regions
+      TRUE ~ Region
+    )
+  )
+
+# Check remaining NAs
+sum(is.na(sale_clean$Region))
+
 # Clean the sales.channel
 library(dplyr)
 sale_clean <- sale_clean %>% 
   filter(Sales.Channel != "YES")
-View(sale_clean)
 
 #Rename the "X" column to "Item.Category"
 library(dplyr)
 sale_clean <- sale_clean %>% 
   rename(Item.Category = X)
 
+library(dplyr)
+sale_clean <- sale_clean %>% 
+  filter(Item.Category != "")
+
 #Drop X.1 has there is no use for it
 sale_clean <- sale_clean[, -which(names(sale_clean) == "X.1")]
+
+# Remove Sales.Channel if it is empty:
+sale_clean <- sale_clean %>%
+  filter(!is.na(Sales.Channel) & trimws(Sales.Channel) != "")
+
+sale_clean <- sale_clean %>% 
+  filter(Item.Category != "None")
 
 
 #Checking for outliers
